@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import torch
 import numpy as np
+import copy
 
 import utils.img
 from utils.group import HeatmapParser
-import BADJA.ref as ds
+import BADJA.refBADJA as ds
 
 parser = HeatmapParser()
 
@@ -54,7 +55,7 @@ def inference(img, func, config):
     for ii in tmp1:
         tmp[ii] = np.concatenate((tmp1[ii], tmp2[ii]), axis=0)
 
-    det = tmp['det'][0, -1] + tmp['det'][1, -1, :, :, ::-1][ds.flipped_parts['mpii']]
+    det = tmp['det'][0, -1] + tmp['det'][1, -1, :, :, ::-1][ds.flipped_parts['badja']]
     if det is None:
         return [], []
     det = det / 2
@@ -94,11 +95,17 @@ def main():
 
     def do(img):
         ans = inference(img, runner, config)
-        # ...
+        if len(ans) > 0:
+            ans = ans[:, :, :3]
+
+        ## ans has shape N,16,3 (num preds, joints, x/y/visible)
+        pred = []
+        for i in range(ans.shape[0]):
+            pred.append({'keypoints': ans[i, :, :]})
+        return pred
 
     gts = []
     preds = []
-    normalizing = []
 
     for anns, img in get_img():
         gts.append(anns)
